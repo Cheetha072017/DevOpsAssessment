@@ -1,0 +1,28 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "soumyastorageaccountType": {
+            "type": "string",
+            "defaultValue": "Standard_LRS"            
+        }
+    },
+    "resources": [
+        {
+            "name": "[variables('storagetype')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "location": "northeurope",
+            "apiVersion": "2015-06-15",
+            "dependsOn": [],
+            "tags": {
+                "displayName": "soumyastorageaccount"
+            },
+            "properties": {
+                "accountType": "[parameters('soumyastorageaccountType')]"
+            }
+        }
+    ],
+    "variables": {
+        "storagetype": "soumyastorageaccount"
+    }
+}
