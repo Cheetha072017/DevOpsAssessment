@@ -1,0 +1,80 @@
+trigger:
+  branches:
+    include:
+      - main  # Set the branch you want to trigger on
+
+stages:
+- stage: Build
+  jobs:
+  - job: Deploy
+    pool:
+      name: 'windows-latest'
+    steps:
+    - task: AzureCLI@2
+      displayName: 'Validate ARM Template'
+      inputs:
+        azureSubscription: 'myserviceConnection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+            az deployment group validate --resource-group TestRSG --template-file "$(System.DefaultWorkingDirectory)/configure_cdn_staticwesite.json"
+    - task: CopyFiles@2
+      displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
+      inputs:
+        SourceFolder: 'DevOpsAssessment'
+        TargetFolder: '$(build.artifactstagingdirectory)/DevOpsAssessment'
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish Artifact: drop'
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)'
+        artifact: 'drop'
+        publishLocation: 'pipeline'
+- stage: DeployDev
+  displayName: 'DeployDev'
+  jobs:
+  - job: 'Deploy'
+    pool:
+      name: 'windows-latest'
+    steps:
+    - task: DownloadPipelineArtifact@2
+      displayName: 'DownloadPipelineArtifact'
+      inputs:
+        buildType: 'current'
+        artifactName: 'drop'
+        downloadPath: '$(System.ArtifactsDirectory)'  
+    - task: AzureResourceManagerTemplateDeployment@3
+      inputs:
+        deploymentScope: 'Resource Group'
+        azureResourceManagerConnection: 'myServiceConnectiontoDev'
+        subscriptionId: 'e730788b-3f2c-4e34-bb2e-5907b4f9ee95'
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: 'MyresourceGroup'
+        location: 'northeurope'
+        templateLocation: '$(System.ArtifactsDirectory)/DevOpsAssessment'
+        csmFile: '$(System.ArtifactsDirectory)/DevOpsAssessment/configure_cdn_staticwebsite.json'
+        overrideParameters: '-indexDocument "index.html" -errorDocument404Path "404.html"'
+
+- stage: DeployProd
+  displayName: 'DeployProd'
+  jobs:
+  - job: 'Deploy'
+    pool:
+      name: 'windows-latest'
+    steps:
+    - task: DownloadPipelineArtifact@2
+      displayName: 'DownloadPipelineArtifact'
+      inputs:
+        buildType: 'current'
+        artifactName: 'drop'
+        downloadPath: '$(System.ArtifactsDirectory)'  
+    - task: AzureResourceManagerTemplateDeployment@3
+      inputs:
+        deploymentScope: 'Resource Group'
+        azureResourceManagerConnection: 'myServiceConnectiontoProd'
+        subscriptionId: '8829dcab-449e-42e7-b6a6-6cd4775d266b'
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: 'MyresourceGroup'
+        location: 'northeurope'
+        templateLocation: '$(System.ArtifactsDirectory)/DevOpsAssessment'
+        csmFile: '$(System.ArtifactsDirectory)/DevOpsAssessment/configure_cdn_staticwebsite.json'
+        overrideParameters: '-indexDocument "index.html" -errorDocument404Path "404.html"'
