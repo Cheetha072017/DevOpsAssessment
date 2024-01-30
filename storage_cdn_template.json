@@ -1,0 +1,101 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourceGroupName": {
+            "type": "string",
+            "defaultValue": "MyresourceGroup",
+            "metadata": {
+                "description": "Name of the Resource Group."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "northeurope",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "defaultValue": "MystorageAccount",
+            "metadata": {
+                "description": "Name of the Storage Account."
+            }
+        },
+        "storageAccountType": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",            
+            "metadata": {
+                "description": "Storage Account type."
+            }
+        },
+        "cdnProfileName": {
+            "type": "string",
+            "defaultValue": "MyCDNProfile",
+            "metadata": {
+                "description": "Name of the CDN Profile."
+            }
+        },
+        "cdnEndpointName": {
+            "type": "string",
+            "defaultValue": "myCDNEndpoint",
+            "metadata": {
+                "description": "Name of the CDN Endpoint."
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/resourceGroups",
+            "apiVersion": "2021-04-01",
+            "name": "[parameters('resourceGroupName')]",
+            "location": "[parameters('location')]",
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2021-04-01",
+            "name": "[parameters('storageAccountName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupName'))]"
+            ],
+            "sku": {
+                "name": "[parameters('storageAccountType')]"
+            },
+            "kind": "StorageV2",
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.Cdn/profiles",
+            "apiVersion": "2021-11-01",
+            "name": "[parameters('cdnProfileName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupName'))]"
+            ],
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.Cdn/profiles/endpoints",
+            "apiVersion": "2021-11-01",
+            "name": "[concat(parameters('cdnProfileName'), '/', parameters('cdnEndpointName'))]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles', parameters('cdnProfileName'))]"
+            ],
+            "properties": {
+                "originHostHeader": "[concat(parameters('storageAccountName'), '.blob.core.windows.net')]",
+                "originPath": "/",
+                "origins": [
+                    {
+                        "name": "storageOrigin",
+                        "hostName": "[concat(parameters('storageAccountName'), '.blob.core.windows.net')]"
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": {}
+}
